@@ -2,7 +2,7 @@
 
 > **Autor:** Aurora (AI asistent) + Rastislav
 > **Projekt:** Automatická ochrana studňového potrubia pred zamrznutím
-> **Posledná aktualizácia:** 26. 7. 2026
+> **Posledná aktualizácia:** 2. 8. 2026 (výmena Sonoff → MINI-D + ventil)
 
 ---
 
@@ -14,9 +14,19 @@
 | **Potrubie — materiál** | Meď, ⌀ 22 mm (vonkajší), vnútorný ~20 mm |
 | **Potrubie — vodorovná časť** | ~30 m, uložené 50 cm pod povrchom |
 | **Kritický úsek** | ~2 m nad povrchom, izolovaný + nerezová chránička |
-| **Ovládanie čerpadla** | Sonoff zásuvka „Šteker 3" (priame napájanie) |
-| **Tlaková nádoba / hydrofor** | ❌ Nie je — čerpadlo beží presne počas zapnutia štekra |
-| **Odber počas cyklu** | Pootvorený kohútik / záhradná hadica |
+| **Ovládanie** | **Sonoff MINI-D** (suchý kontakt NO/COM/NC) → elektroventil |
+| **Zapojenie ventilu** | Na **NO** kontakt (relé ZAP → ventil otvorí → voda tečie) |
+| **Tlaková nádoba / hydrofor** | ❌ Nie je |
+| **Odber počas cyklu** | Cez ventil (predtým: pootvorený kohútik) |
+
+---
+
+## 🔄 História zmien hardvéru
+
+| Dátum | Zmena | Dôvod |
+|---|---|---|
+| 25. 7. 2026 | Sonoff „Šteker 3" (`switch.sonoff_1002a54f5d_1`) — priame spínanie čerpadla | Prvá verzia |
+| 2. 8. 2026 | **Sonoff MINI-D** (`switch.mini_d1_sonoff_10028e60fa_1`) | Ventil vyžaduje bezpotenciálový prepínací kontakt NO/COM/NC |
 
 ---
 
@@ -27,9 +37,30 @@
 | Kritický úsek (2 m) | π × (0,01 m)² × 2 m | **0,63 l** |
 | Celé potrubie (30 m vodorovne + 20 m zvisle = 50 m) | π × (0,01 m)² × 50 m | **15,7 l** |
 
-> 💡 **Záver:** pri bežnom prietoku studňového čerpadla (20–50 l/min) sa celý objem
-> potrubia vymení za **20–45 sekúnd**. Zvolené **2 minúty** behu = bezpečná rezerva
-> + čas na prehriatie medi teplom spodnej vody (typicky 8–10 °C aj v zime).
+> 💡 **Záver:** pri bežnom prietoku (20–50 l/min) sa celý objem potrubia vymení za
+> **20–45 sekúnd**. Zvolené **2 minúty** = bezpečná rezerva + čas na prehriatie medi
+> teplom spodnej vody (typicky 8–10 °C aj v zime).
+
+---
+
+## 🔌 Sonoff MINI-D — zapojenie a konfigurácia
+
+| Svorka | Použitie |
+|---|---|
+| **NO** | ⭐ Vodič k ventilu — relé ZAP zopne kontakt → ventil otvorí |
+| **COM** | Spoločný |
+| **NC** | Nepoužité |
+| N, L | Napájanie modulu 230 V |
+| S1, S2 | Externý spínač (nepoužité) |
+| DC+, DC− | Nepoužité |
+
+### ⚙️ Nastavenie „Power-on state"
+
+> ⚠️ **`stay` → `off`** (Zariadenie → Konfigurácia → MINI-D1)
+>
+> Pri `stay` by si relé po výpadku prúdu zapamätalo posledný stav — ak by výpadok
+> nastal počas 2-min cyklu, ventil by po obnovení ostal otvorený a voda by tiekla
+> nepretržite. Poistka by to síce po 5 min zatvorila, ale lepšie je tomu predísť.
 
 ---
 
@@ -38,10 +69,12 @@
 | Entita | Typ | Funkcia |
 |---|---|---|
 | `sensor.eu_i_2_plus_ot_vonkajsia_teplota_teplota` | sensor | Vonkajšia teplota (Tech Controllers EU-i-2 Plus OT) |
-| `switch.sonoff_1002a54f5d_1` | switch | Šteker 3 — napájanie studňového čerpadla |
+| `switch.mini_d1_sonoff_10028e60fa_1` | switch | **Sonoff MINI-D — ventil studne** |
 | `input_datetime.cerpadlo_posledne_spustenie` | input_datetime | Čas posledného ochranného cyklu |
 | `automation.studna_ochrana_pred_zamrznutim` | automation | Hlavná 3-vrstvová automatizácia |
 | `automation.studna_poistka_proti_zaseknutemu_cerpadlu` | automation | Bezpečnostná poistka |
+
+**Zariadenie:** SONOFF MINI-D · eWeLink ID `10028e60fa` · MAC `28:05:A5:88:31:94` · FW 1.0.0
 
 ---
 
@@ -52,7 +85,7 @@
 | **3** (priorita) | ≤ −18 °C | každú 1 h | 2 min | ✅ Áno |
 | **2** | ≤ −15 °C a > −18 °C | každé 2 h | 2 min | ❌ |
 | **1** | ≤ −10 °C a > −15 °C | každé 4 h | 2 min | ❌ |
-| **Poistka** | — | trigger `for: 5 min` | vypne | ✅ Áno |
+| **Poistka** | — | trigger `for: 5 min` | zatvorí | ✅ Áno |
 
 ### Prečo takto
 
@@ -96,10 +129,10 @@ actions:
             value_template: "{{ teplota <= -18 and minuty_od_posledneho >= 60 }}"
         sequence:
           - action: switch.turn_on
-            target: {entity_id: switch.sonoff_1002a54f5d_1}
+            target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
           - delay: "00:02:00"
           - action: switch.turn_off
-            target: {entity_id: switch.sonoff_1002a54f5d_1}
+            target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
           - action: input_datetime.set_datetime
             target: {entity_id: input_datetime.cerpadlo_posledne_spustenie}
             data:
@@ -108,18 +141,18 @@ actions:
             data:
               title: "❄️ Extrémny mráz"
               message: >
-                Vonkajšia teplota {{ teplota }}°C. Studničné čerpadlo
-                spustené na 2 min (ochranný cyklus, interval 1h).
+                Vonkajšia teplota {{ teplota }}°C. Ventil studne otvorený
+                na 2 min (ochranný cyklus, interval 1h).
       # VRSTVA 2 — silný mráz
       - conditions:
           - condition: template
             value_template: "{{ teplota <= -15 and teplota > -18 and minuty_od_posledneho >= 120 }}"
         sequence:
           - action: switch.turn_on
-            target: {entity_id: switch.sonoff_1002a54f5d_1}
+            target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
           - delay: "00:02:00"
           - action: switch.turn_off
-            target: {entity_id: switch.sonoff_1002a54f5d_1}
+            target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
           - action: input_datetime.set_datetime
             target: {entity_id: input_datetime.cerpadlo_posledne_spustenie}
             data:
@@ -130,10 +163,10 @@ actions:
             value_template: "{{ teplota <= -10 and teplota > -15 and minuty_od_posledneho >= 240 }}"
         sequence:
           - action: switch.turn_on
-            target: {entity_id: switch.sonoff_1002a54f5d_1}
+            target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
           - delay: "00:02:00"
           - action: switch.turn_off
-            target: {entity_id: switch.sonoff_1002a54f5d_1}
+            target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
           - action: input_datetime.set_datetime
             target: {entity_id: input_datetime.cerpadlo_posledne_spustenie}
             data:
@@ -145,22 +178,22 @@ actions:
 ## 🛡️ Automatizácia 2 — Bezpečnostná poistka (YAML)
 
 ```yaml
-alias: "Studňa - poistka proti zaseknutému čerpadlu"
-description: "Núdzové vypnutie ak čerpadlo beží nezmyselne dlho"
+alias: "Studňa - poistka proti zaseknutému ventilu"
+description: "Núdzové zatvorenie ak ventil ostane otvorený nezmyselne dlho"
 mode: single
 triggers:
   - trigger: state
-    entity_id: switch.sonoff_1002a54f5d_1
+    entity_id: switch.mini_d1_sonoff_10028e60fa_1
     to: "on"
     for: "00:05:00"
 conditions: []
 actions:
   - action: switch.turn_off
-    target: {entity_id: switch.sonoff_1002a54f5d_1}
+    target: {entity_id: switch.mini_d1_sonoff_10028e60fa_1}
   - action: notify.mobile_app_norris
     data:
       title: "⚠️ Poistka studňa"
-      message: "Čerpadlo bežalo viac ako 5 minút — automaticky vypnuté poistkou. Skontroluj automatizáciu/skript."
+      message: "Ventil bol otvorený viac ako 5 minút — automaticky zatvorený poistkou. Skontroluj automatizáciu."
 ```
 
 ---
@@ -215,9 +248,9 @@ grid_options:
 
 ```yaml
 type: tile
-entity: switch.sonoff_1002a54f5d_1
-name: Čerpadlo (Šteker 3)
-icon: mdi:pump
+entity: switch.mini_d1_sonoff_10028e60fa_1
+name: Ventil studne
+icon: mdi:valve
 features:
   - type: toggle
 grid_options:
@@ -257,7 +290,7 @@ grid_options:
 
 ---
 
-## 🎓 Know-how z tejto session
+## 🎓 Know-how z tohto projektu
 
 ### 1. Chyba `TypeError: can't subtract offset-naive and offset-aware datetimes`
 
@@ -304,7 +337,27 @@ jednotlivo cez **+ Pridať kartu** priamo do sekcie.
 | `columns: 4` | Tretina šírky (3 karty vedľa seba) |
 | `rows: N` | Výška karty v jednotkách mriežky |
 
-### 5. GARNI 1085 Arcus — NEintegrovateľná lokálne (slepá ulička)
+### 5. Sonoff MINI-D — suchý kontakt pre ventily ⭐
+
+- MINI-D má **bezpotenciálový prepínací kontakt NO/COM/NC** — na rozdiel od bežných
+  Sonoff zásuviek, ktoré len spínajú 230 V.
+- Vhodný všade, kde zariadenie potrebuje **externé spínanie** (elektroventily,
+  kotly, brány, čerpadlá s vlastným napájaním).
+- **Power-on state** nastaviť na `off`, nie `stay` — inak po výpadku prúdu zostane
+  v poslednom stave.
+- Pridanie do HA: eWeLink → spárovať → **zapnúť LAN mode** → SonoffLAN v HA nájde
+  automaticky. Entity ID má tvar `switch.{nazov}_sonoff_{id}_1`.
+
+### 6. Testovanie automatizácie s `time_pattern` triggerom
+
+Trigger `minutes: "/15"` spustí automatizáciu len o :00, :15, :30, :45 — pri testovaní
+**netreba čakať**, stačí ⋮ → **Spustiť** (ručné spustenie preskočí trigger, ale
+podmienky v `choose` sa vyhodnotia normálne).
+
+> ⚠️ Po prvom úspešnom teste sa `input_datetime` prepíše → ďalší test neprejde cez
+> podmienku `minuty_od_posledneho >= 60`. Dočasne znížiť na `>= 0` alebo počkať.
+
+### 7. GARNI 1085 Arcus — NEintegrovateľná lokálne (slepá ulička)
 
 | Zistenie | Detail |
 |---|---|
@@ -316,15 +369,19 @@ jednotlivo cez **+ Pridať kartu** priamo do sekcie.
 **Možné budúce cesty (neotestované):**
 - Appka **WSLink / WS View / EasyWeather** (ak by bola pre tento model dostupná) —
   tá u príbuzných Ecowitt/Fine Offset staníc pole „Custom Server" má
-- HACS komponenta [`SWS-12500-custom-component`](https://github.com/schizza/SWS-12500-custom-component)
-  (Sencor, Garni, Bresser, Ecowitt) — podporuje protokoly WSLink aj PWS/WU
-- Diagnostický nástroj [`test-station.schizza.cz`](https://test-station.schizza.cz) —
-  na 30 min vytvorí testovaciu subdoménu a ukáže, aký protokol stanica reálne posiela
+- HACS komponenta `SWS-12500-custom-component` (schizza) — pre Sencor, Garni,
+  Bresser, Ecowitt; podporuje protokoly WSLink aj PWS/WU
+- Diagnostický nástroj `test-station.schizza.cz` — vytvorí dočasnú testovaciu
+  subdoménu a ukáže, aký protokol stanica reálne posiela
   (⚠️ vyžaduje pole na hostname v stanici — čo práve chýba)
 
 > 💡 **Ponaučenie:** Pred integráciou nového zariadenia najprv overiť, či appka/konzola
 > vôbec ponúka pole na **vlastný server (hostname/IP)**. Bez neho je lokálna
 > integrácia nemožná bez ohľadu na to, aký hardvér je vnútri.
+>
+> **Riešenie použité v tomto projekte:** vonkajšia teplota sa nakoniec zobrala
+> z už existujúceho senzora TECH Controllers
+> (`sensor.eu_i_2_plus_ot_vonkajsia_teplota_teplota`) — GARNI stanica nebola potrebná.
 
 ---
 
@@ -334,10 +391,9 @@ jednotlivo cez **+ Pridať kartu** priamo do sekcie.
 |---|---|---|
 | 1 | Vývojárske nástroje → Šablóna: overiť výpočet `minuty_od_posledneho` | Kladné číslo bez chyby |
 | 2 | Automatizácia → ⋮ → Spustiť | Trasovanie bez červenej chyby, žiadna vrstva sa nespustí |
-| 3 | Fyzicky pootvoriť kohútik/hadicu | Voda pripravená tiecť |
-| 4 | Dočasne zmeniť vrstvu 3 na `teplota <= 100` | — |
-| 5 | Spustiť automatizáciu | Čerpadlo ON → 2 min → OFF, príde notifikácia |
-| 6 | **Vrátiť podmienku späť na `teplota <= -18`** ⚠️ | Produkčný stav |
+| 3 | Dočasne zmeniť vrstvu 3 na `teplota <= 100` | — |
+| 4 | Automatizácia → ⋮ → Spustiť | Relé ON → 2 min → OFF, notifikácia, helper aktualizovaný |
+| 5 | **Vrátiť podmienku späť na `teplota <= -18`** ⚠️ | Produkčný stav |
 
 ---
 
@@ -349,12 +405,16 @@ jednotlivo cez **+ Pridať kartu** priamo do sekcie.
 - [x] Automatizácia — 3 vrstvy (−10 / −15 / −18 °C)
 - [x] Bezpečnostná poistka (5 min timeout)
 - [x] Oprava chyby `offset-naive vs offset-aware`
-- [x] Reálny test čerpadla (2 min beh, voda tiekla)
-- [x] Vrátenie produkčných prahov
 - [x] Dashboard sekcia STUDŇA (VELIN)
+- [x] **Výmena Sonoff Šteker 3 → Sonoff MINI-D (suchý kontakt)**
+- [x] **Aktualizácia entity vo všetkých automatizáciách a dashboarde**
+- [x] **Test s MINI-D — funkčné**
+- [ ] Prepnúť `stay` → `off` v konfigurácii MINI-D
+- [ ] Fyzické zapojenie ventilu na **NO** kontakt
+- [ ] Odstrániť starý Sonoff `switch.sonoff_1002a54f5d_1` z HA (ak sa už nepoužíva)
 - [ ] *(voliteľné)* Denná súhrnná notifikácia o počte cyklov
-- [ ] *(voliteľné)* Overenie funkčnosti pri prvom reálnom mraze (zima 2026/27)
-- [ ] *(odložené)* Integrácia GARNI 1085 Arcus — viď know-how bod 5
+- [ ] *(voliteľné)* Overenie pri prvom reálnom mraze (zima 2026/27)
+- [ ] *(odložené)* Integrácia GARNI 1085 Arcus — viď know-how bod 7
 
 ---
 
@@ -363,7 +423,7 @@ jednotlivo cez **+ Pridať kartu** priamo do sekcie.
 | Nápad | Prínos | Náročnosť |
 |---|---|---|
 | Denná súhrnná notifikácia o 8:00 | Prehľad, koľko cyklov prebehlo v noci | Nízka |
-| Meranie spotreby čerpadla (Sonoff POWR) | Overenie, že čerpadlo naozaj beží (nie len relé) | Stredná |
+| Prietokový senzor za ventilom | Overenie, že voda naozaj tečie (nie len relé zopne) | Stredná |
 | Senzor teploty priamo na kritickom úseku | Presnejšie riadenie než podľa vzduchu | Stredná (hardvér) |
 | History graf teploty + cyklov na dashboarde | Vizuálna kontrola zásahov cez zimu | Nízka |
 
