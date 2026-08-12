@@ -15,9 +15,8 @@ Súvisí s: [[system]] · [[problemy]]
 
 ## Bežné
 
-- [ ] Namontovať vonkajší snímač **External 291p** na severnú stenu domu
-      (zatiaľ len zapojený do svorkovnice). Viď [[snimace]].
-- [ ] Nastaviť spínanie čerpadla 1 pri **42 °C** (overiť že je aktívne v menu).
+- [ ] Zvážiť zapojenie NTC do svorky `Return sensor` (spiatočka kotla) —
+      získal by si prehľad o funkcii bajonetu ESBE. Zatiaľ nepripojené.
 
 ## Budúce projekty
 
@@ -36,3 +35,6 @@ Súvisí s: [[system]] · [[problemy]]
 - [x] Všetky snímače zapojené a overené
 - [x] Čerpadlá a servo ESBE zapojené a kalibrované
 - [x] Systém aktívne reguluje ventil
+- [x] Vonkajší snímač 291p namontovaný a funkčný
+- [x] Spínanie čerpadla pri 42 °C nastavené
+- [x] TÚV snímač viditeľný v HA (presun na S3) — 18.7.2026
