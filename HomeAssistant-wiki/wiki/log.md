@@ -19,8 +19,3 @@ Greppovateľné: `grep "^## \[" wiki/log.md | tail -5`
 ## [2026-06-06] todo | Havarijný chladič na Viadrus U22 — CHÝBA, povinné STN EN 303-5, treba kúrenára
 ## [2026-06-08] config | Vytvorená LLM Wiki štruktúra (raw/ + wiki/ + CLAUDE.md) podľa Karpathy vzoru
 ## [2026-06-28] config | Pridaný nástroj wiki/nastroje/prompt-inzinier.md (upravený "Prompt Inžinier" pre Claude + HA doménu, slovenčina)
-## [2026-07-18] fix | TÚV snímač presunutý zo svorky DHW sensor na S3 — okruh TÚV je v regulátore vypnutý, hodnota sa neposielala do HA. Riadiaca logika NEZMENENÁ.
-## [2026-07-18] config | Overené mapovanie snímačov: S1=AKU Stred, S2=Spiatočka radiátorov (informatívne), S3=TÚV. Return sensor nepripojený — ochranu rieši bajonet ESBE 60°C.
-## [2026-07-18] config | Dashboard: karta Teploty doplnená o TÚV (S3), pridaný graf "Teplota TÚV (24 h)"
-## [2026-07-18] query | Overené že zatvorené ventily netesnia: nádrž 64°C vs kotol 24°C po týždni bez kúrenia. Vedenie cez potrubie ~0,4 W = zanedbateľné.
-## [2026-07-18] todo | Nočná strata akumulačky ponechaná na S1 (stred nádrže) — reprezentatívny priemer, netreba meniť
